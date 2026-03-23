@@ -5,7 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import time
 
 # ================= CONFIGURAZIONE =================
-TOKEN = "IL_TUO_TOKEN_DEL_BOT"
+TOKEN = "8737475516:AAF5yhE0IAS7P_IZCVivBgtZhWpXz2SHWxA"
 CHANNELS = [
     {
         "id": -1007120266689,      # ID del tuo canale privato
