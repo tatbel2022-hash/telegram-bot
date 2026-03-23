@@ -5,7 +5,7 @@ import pytz
 
 # ------------------- CONFIG -------------------
 TOKEN = "8737475516:AAF5yhE0IAS7P_IZCVivBgtZhWpXz2SHWxA"  # <-- metti qui il token reale di BotFather
-CHANNEL_ID = -1007120266689      # ID del canale (numerico)
+CHANNEL_ID = -1003390683122    # ID del canale (numerico)
 UPDATE_INTERVAL_SECONDS = 30     # ogni quanti secondi pubblicare
 TIME_WINDOW_START = (15, 0)       # fascia oraria inizio (h, m)
 TIME_WINDOW_END = (16, 0)       # fascia oraria fine (h, m)
