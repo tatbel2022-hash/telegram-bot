@@ -1,99 +1,52 @@
-import logging
-from datetime import datetime, timedelta
+import time
 from telegram import Bot
 from apscheduler.schedulers.background import BackgroundScheduler
-import time
+import pytz
 
-# ================= CONFIGURAZIONE =================
-TOKEN = "8737475516:AAF5yhE0IAS7P_IZCVivBgtZhWpXz2SHWxA"
-CHANNELS = [
-    {
-        "id": -1007120266689,      # ID del tuo canale privato
-        "interval": 30,             # secondi tra un post e l'altro
-        "repeat_days": 0,           # 0 per test immediato
-        "time_window_start": (15,0),# inizio fascia
-        "time_window_end": (16,0)   # fine fascia
-    }
-]
-UPDATE_INTERVAL_HOURS = 1  # ogni quante ore aggiornare i post nuovi
-# =================================================
+# ------------------- CONFIG -------------------
+TOKEN = "8737475516:AAF5yhE0IAS7P_IZCVivBgtZhWpXz2SHWxA"  # <-- metti qui il token reale di BotFather
+CHANNEL_ID = -1007120266689      # ID del canale (numerico)
+UPDATE_INTERVAL_SECONDS = 30     # ogni quanti secondi pubblicare
+TIME_WINDOW_START = (15, 0)       # fascia oraria inizio (h, m)
+TIME_WINDOW_END = (16, 0)       # fascia oraria fine (h, m)
+MAX_POSTS_HISTORY = 500           # quanti post leggere dal canale
+# --------------------------------------------
 
-logging.basicConfig(level=logging.INFO)
 bot = Bot(TOKEN)
-scheduler = BackgroundScheduler()
-post_queues = {}
+scheduler = BackgroundScheduler(timezone=pytz.timezone("Europe/Rome"))
 
-# Funzione per caricare i post da un canale
-def load_posts(channel_id):
-    updates = bot.get_chat(channel_id).get_history(limit=200)  # legge ultimi 200 post
-    posts = []
-    for msg in updates:
-        posts.append({
-            "message_id": msg.message_id,
-            "last_posted": datetime.min  # inizialmente mai postato
-        })
-    return posts
+# Lista dei post già pubblicati (memoria temporanea)
+post_queue = []
 
-# Funzione per aggiornare i post nuovi
+# Funzione per caricare i post dal canale
+def load_posts():
+    global post_queue
+    updates = bot.get_chat(CHANNEL_ID).get_history(limit=MAX_POSTS_HISTORY)
+    post_queue = updates[::-1]  # inverti per partire dal post più vecchio
+
+# Funzione per ripubblicare
 def update_posts():
-    for ch in CHANNELS:
-        new_posts = load_posts(ch["id"])
-        queue = post_queues.get(ch["id"], [])
-        existing_ids = [p["message_id"] for p in queue]
-        for p in new_posts:
-            if p["message_id"] not in existing_ids:
-                queue.append(p)
-        post_queues[ch["id"]] = queue
-        logging.info(f"Post aggiornati per {ch['id']}, totale in coda: {len(queue)}")
-
-# Controlla se l'ora corrente è nella fascia
-def in_time_window(start, end, now):
-    start_hour, start_minute = start
-    end_hour, end_minute = end
-    now_hour, now_minute = now.hour, now.minute
-    start_total = start_hour*60 + start_minute
-    end_total = end_hour*60 + end_minute
-    now_total = now_hour*60 + now_minute
-    return start_total <= now_total < end_total
-
-# Funzione per pubblicare post
-def publish_posts():
-    now = datetime.now()
-    for ch in CHANNELS:
-        if not in_time_window(ch["time_window_start"], ch["time_window_end"], now):
-            continue
-        queue = post_queues.get(ch["id"], [])
-        if not queue:
-            continue
-        for post in queue:
-            if now - post["last_posted"] >= timedelta(days=ch["repeat_days"]):
-                try:
-                    bot.forward_message(
-                        chat_id=ch["id"],
-                        from_chat_id=ch["id"],
-                        message_id=post["message_id"]
-                    )
-                    post["last_posted"] = now
-                    logging.info(f"Post {post['message_id']} pubblicato in {ch['id']}")
-                    time.sleep(ch["interval"])
-                except Exception as e:
-                    logging.error(f"Errore pubblicazione post {post['message_id']}: {e}")
-                break
-
-# Scheduler
-scheduler.add_job(update_posts, 'interval', hours=UPDATE_INTERVAL_HOURS)
-scheduler.add_job(publish_posts, 'interval', minutes=1)
+    from datetime import datetime
+    now = datetime.now(pytz.timezone("Europe/Rome"))
+    if TIME_WINDOW_START <= (now.hour, now.minute) <= TIME_WINDOW_END:
+        if post_queue:
+            post = post_queue.pop(0)
+            bot.forward_message(chat_id=CHANNEL_ID, from_chat_id=CHANNEL_ID, message_id=post.message_id)
+            post_queue.append(post)
+            print(f"Post {post.message_id} pubblicato in {CHANNEL_ID}")
 
 # Carica inizialmente i post
-for ch in CHANNELS:
-    post_queues[ch["id"]] = load_posts(ch['id'])
+load_posts()
 
+# Scheduler per aggiornare ogni UPDATE_INTERVAL_SECONDS
+scheduler.add_job(update_posts, 'interval', seconds=UPDATE_INTERVAL_SECONDS)
 scheduler.start()
 
-logging.info("Bot in modalità test avviato...")
+print("Bot avviato e pronto a ripubblicare i post...")
+
+# Mantieni il bot attivo
 try:
     while True:
-        time.sleep(10)
-except (KeyboardInterrupt, SystemExit):
+        time.sleep(1)
+except KeyboardInterrupt:
     scheduler.shutdown()
-    logging.info("Bot arrestato.")
