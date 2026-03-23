@@ -11,8 +11,8 @@ CHANNELS = [
         "id": -1007120266689,      # ID del tuo canale privato
         "interval": 30,             # secondi tra un post e l'altro
         "repeat_days": 0,           # 0 per test immediato
-        "time_window_start": (12,0),# inizio fascia
-        "time_window_end": (14,0)   # fine fascia
+        "time_window_start": (15,0),# inizio fascia
+        "time_window_end": (16,0)   # fine fascia
     }
 ]
 UPDATE_INTERVAL_HOURS = 1  # ogni quante ore aggiornare i post nuovi
