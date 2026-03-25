@@ -6,7 +6,7 @@ from telegram import Bot
 from apscheduler.schedulers.background import BackgroundScheduler
 
 # -------- CONFIG --------
-TOKEN = "IL_TUO_TOKEN"
+TOKEN = "8737475516:AAF5yhE0IAS7P_IZCVivBgtZhWpXz2SHWxA"
 CHANNEL_ID = -1003390683122
 
 INTERVAL_SECONDS = 30
